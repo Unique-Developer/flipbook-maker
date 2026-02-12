@@ -32,11 +32,11 @@ function App() {
     setIsProcessing(true);
     
     try {
-      // Load PDF to get page count
+      // Load PDF locally to get page count for UX (fast, no backend dependency)
       const pdf = await loadPDF(file);
       const totalPages = pdf.numPages;
       
-      // Optionally store metadata locally (not required for permanent GitHub URLs)
+      // Optionally store metadata locally
       const id = generateFlipbookId();
       saveFlipbook({
         id,
@@ -44,11 +44,39 @@ function App() {
         totalPages,
         createdAt: Date.now(),
       });
+
+      // If a backend upload URL is configured, upload to GitHub via backend
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
+      if (backendUrl) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', file.name);
+
+        const response = await fetch(`${backendUrl.replace(/\/$/, '')}/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Backend upload failed: ${response.status}`);
+        }
+
+        const data: { pdfUrl: string; viewerUrl: string; title: string } = await response.json();
+
+        // Use the uploaded GitHub URL for viewing and sharing
+        setSharedPdfUrl(data.pdfUrl);
+        setSharedTitle(data.title);
+        // Update URL so the current page is already the share link
+        window.location.hash = `#/view?pdf=${encodeURIComponent(data.pdfUrl)}&title=${encodeURIComponent(data.title)}`;
+        return;
+      }
       
+      // Fallback: no backend configured, keep local-only viewer
       setCurrentPDF(file);
     } catch (error) {
-      console.error('Error processing PDF:', error);
-      alert('Failed to process PDF. Please try again.');
+      console.error('Error processing or uploading PDF:', error);
+      alert('Failed to process or upload PDF. Please try again.');
     } finally {
       setIsProcessing(false);
     }
