@@ -2,11 +2,32 @@ import express from 'express';
 import multer from 'multer';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import cors from 'cors';
 
 dotenv.config();
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
+
+// CORS: allow your frontend origins (GitHub Pages + local dev)
+const allowedOrigins = [
+  'https://unique-developer.github.io',
+  'https://unique-developer.github.io/flipbook-maker',
+  'http://localhost:3000',
+];
+
+app.use(cors({
+  origin(origin, callback) {
+    // Allow requests without Origin (e.g. curl, server-to-server) and allowed frontends
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some(o => origin.startsWith(o))) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 const PORT = process.env.PORT || 4000;
 
@@ -31,6 +52,9 @@ app.use(express.json());
 app.get('/', (_req, res) => {
   res.json({ status: 'ok', message: 'Flipbook backend is running' });
 });
+
+// Handle preflight for upload endpoint
+app.options('/upload', cors());
 
 /**
  * POST /upload
