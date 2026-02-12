@@ -45,17 +45,17 @@ function App() {
         createdAt: Date.now(),
       });
 
-      // If a backend upload URL is configured, upload to GitHub via backend
-      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+      // If a backend upload URL is configured, upload to GitHub via Vercel function
+      const backendEndpoint = import.meta.env.VITE_BACKEND_URL;
 
-      if (backendUrl) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('title', file.name);
-
-        const response = await fetch(`${backendUrl.replace(/\/$/, '')}/upload`, {
+      if (backendEndpoint) {
+        const response = await fetch(backendEndpoint, {
           method: 'POST',
-          body: formData,
+          headers: {
+            'Content-Type': 'application/pdf',
+            'X-Filename': file.name,
+          },
+          body: file,
         });
 
         if (!response.ok) {
@@ -64,11 +64,8 @@ function App() {
 
         const data: { pdfUrl: string; viewerUrl: string; title: string } = await response.json();
 
-        // Use the uploaded GitHub URL for viewing and sharing
-        setSharedPdfUrl(data.pdfUrl);
-        setSharedTitle(data.title);
-        // Update URL so the current page is already the share link
-        window.location.hash = `#/view?pdf=${encodeURIComponent(data.pdfUrl)}&title=${encodeURIComponent(data.title)}`;
+        // Go directly to the permanent viewer URL produced by the backend
+        window.location.href = data.viewerUrl;
         return;
       }
       
