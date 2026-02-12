@@ -12,17 +12,25 @@ function App() {
 
   // Parse URL hash: #/view?pdf=...&title=...
   useEffect(() => {
-    const hash = window.location.hash;
-    if (hash.startsWith('#/view')) {
-      const [, queryString] = hash.split('?');
-      const params = new URLSearchParams(queryString ?? '');
-      const pdfParam = params.get('pdf');
-      const titleParam = params.get('title');
+    const hash = window.location.hash || '';
+    if (!hash.startsWith('#/view')) return;
 
-      if (pdfParam) {
-        setSharedPdfUrl(pdfParam);
-        setSharedTitle(titleParam ?? undefined);
-      }
+    const [, queryString] = hash.split('?');
+    const params = new URLSearchParams(queryString ?? '');
+    let pdfParam = params.get('pdf') || '';
+    let titleParam = params.get('title') || '';
+
+    // Decode in case the URL and title are percent-encoded
+    try {
+      if (pdfParam) pdfParam = decodeURIComponent(pdfParam);
+      if (titleParam) titleParam = decodeURIComponent(titleParam);
+    } catch {
+      // If decoding fails, just use raw values
+    }
+
+    if (pdfParam) {
+      setSharedPdfUrl(pdfParam);
+      setSharedTitle(titleParam || undefined);
     }
   }, []);
 
