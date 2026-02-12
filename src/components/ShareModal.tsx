@@ -21,9 +21,9 @@ export default function ShareModal({ initialPdfUrl, defaultTitle, onClose }: Sha
 
     const base = `${window.location.origin}${window.location.pathname}`;
     const params = new URLSearchParams();
-    params.set('pdf', encodeURIComponent(pdfUrl));
+    params.set('pdf', pdfUrl);
     if (title) {
-      params.set('title', encodeURIComponent(title));
+      params.set('title', title);
     }
 
     const link = `${base}#/view?${params.toString()}`;

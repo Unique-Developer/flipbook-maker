@@ -22,16 +22,8 @@ function App() {
       const titleParam = params.get('title');
 
       if (pdfParam) {
-        try {
-          const decodedPdf = decodeURIComponent(pdfParam);
-          const decodedTitle = titleParam ? decodeURIComponent(titleParam) : undefined;
-          setSharedPdfUrl(decodedPdf);
-          setSharedTitle(decodedTitle);
-        } catch {
-          // If decoding fails, just use the raw value
-          setSharedPdfUrl(pdfParam);
-          setSharedTitle(titleParam ?? undefined);
-        }
+        setSharedPdfUrl(pdfParam);
+        setSharedTitle(titleParam ?? undefined);
       }
     }
   }, []);
