@@ -9,25 +9,8 @@ dotenv.config();
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
-// CORS: allow your frontend origins (GitHub Pages + local dev)
-const allowedOrigins = [
-  'https://unique-developer.github.io',
-  'https://unique-developer.github.io/flipbook-maker',
-  'http://localhost:3000',
-];
-
-app.use(cors({
-  origin(origin, callback) {
-    // Allow requests without Origin (e.g. curl, server-to-server) and allowed frontends
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.some(o => origin.startsWith(o))) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// Simple CORS: allow all origins (safe enough because GitHub token is scoped to one repo)
+app.use(cors());
 
 const PORT = process.env.PORT || 4000;
 
