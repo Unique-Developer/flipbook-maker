@@ -289,13 +289,29 @@ export default function FlipbookViewer({ pdfFile, pdfUrl, title, onClose }: Flip
 
   // Download PDF
   const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(pdfFile);
-    link.download = pdfFile.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
+    // If we have a local File (upload in this session), download that
+    if (pdfFile) {
+      const link = document.createElement('a');
+      const blobUrl = URL.createObjectURL(pdfFile);
+      link.href = blobUrl;
+      link.download = pdfFile.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      return;
+    }
+
+    // Fallback: if we only have a URL (GitHub-hosted PDF), open it in a new tab
+    if (pdfUrl) {
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   if (isLoading) {
@@ -375,14 +391,12 @@ export default function FlipbookViewer({ pdfFile, pdfUrl, title, onClose }: Flip
             </button>
 
             {/* Share */}
-            {flipbookId && (
-              <button
-                onClick={() => setShowShareModal(true)}
-                className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors"
-              >
-                🔗 Share
-              </button>
-            )}
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors"
+            >
+              🔗 Share
+            </button>
 
             {/* Download */}
             <button
