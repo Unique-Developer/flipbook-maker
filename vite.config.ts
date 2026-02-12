@@ -4,7 +4,7 @@ import { copyFileSync } from 'fs'
 import { join } from 'path'
 
 export default defineConfig({
-  base: '/flipbook-maker/',   // 👈 set this to '/<repo-name>/'
+  base: '/flipbook-maker/',   // 👈 repo name with leading and trailing slash
   plugins: [
     react(),
     {
