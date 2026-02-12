@@ -3,14 +3,13 @@ import react from '@vitejs/plugin-react'
 import { copyFileSync } from 'fs'
 import { join } from 'path'
 
-// https://vitejs.dev/config/
 export default defineConfig({
+  base: '/flipbook-maker/',   // 👈 set this to '/<repo-name>/'
   plugins: [
     react(),
     {
       name: 'copy-pdf-worker',
       buildStart() {
-        // Copy PDF.js worker file to public folder for local use
         try {
           const workerSrc = join(__dirname, 'node_modules/pdfjs-dist/build/pdf.worker.min.mjs')
           const workerDest = join(__dirname, 'public/pdf.worker.min.mjs')
