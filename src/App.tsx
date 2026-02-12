@@ -32,11 +32,11 @@ function App() {
     setIsProcessing(true);
     
     try {
-      // Load PDF locally to get page count for UX (fast, no backend dependency)
+      // Load PDF locally to get page count (for UX only)
       const pdf = await loadPDF(file);
       const totalPages = pdf.numPages;
       
-      // Optionally store metadata locally
+      // Optionally store metadata locally (for a simple recent list in future)
       const id = generateFlipbookId();
       saveFlipbook({
         id,
@@ -44,36 +44,12 @@ function App() {
         totalPages,
         createdAt: Date.now(),
       });
-
-      // If a backend upload URL is configured, upload to GitHub via Vercel function
-      const backendEndpoint = import.meta.env.VITE_BACKEND_URL;
-
-      if (backendEndpoint) {
-        const response = await fetch(backendEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/pdf',
-            'X-Filename': file.name,
-          },
-          body: file,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Backend upload failed: ${response.status}`);
-        }
-
-        const data: { pdfUrl: string; viewerUrl: string; title: string } = await response.json();
-
-        // Go directly to the permanent viewer URL produced by the backend
-        window.location.href = data.viewerUrl;
-        return;
-      }
       
-      // Fallback: no backend configured, keep local-only viewer
+      // Show this PDF in the viewer for the current session only
       setCurrentPDF(file);
     } catch (error) {
-      console.error('Error processing or uploading PDF:', error);
-      alert('Failed to process or upload PDF. Please try again.');
+      console.error('Error processing PDF:', error);
+      alert('Failed to process PDF. Please try again.');
     } finally {
       setIsProcessing(false);
     }
