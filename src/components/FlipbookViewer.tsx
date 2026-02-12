@@ -6,12 +6,13 @@ import ShareModal from './ShareModal';
 import { playPageFlipSound } from '../utils/soundUtils';
 
 interface FlipbookViewerProps {
-  pdfFile: File;
-  flipbookId?: string;
+  pdfFile?: File;           // Local upload
+  pdfUrl?: string;          // Permanent URL (e.g. GitHub-hosted PDF)
+  title?: string;           // Optional display title
   onClose?: () => void;
 }
 
-export default function FlipbookViewer({ pdfFile, flipbookId, onClose }: FlipbookViewerProps) {
+export default function FlipbookViewer({ pdfFile, pdfUrl, title, onClose }: FlipbookViewerProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,7 +44,12 @@ export default function FlipbookViewer({ pdfFile, flipbookId, onClose }: Flipboo
         setIsLoading(true);
         setLoadingProgress(0);
 
-        const pdfDoc = await loadPDF(pdfFile);
+        const source = pdfUrl ?? pdfFile;
+        if (!source) {
+          throw new Error('No PDF source provided');
+        }
+
+        const pdfDoc = await loadPDF(source);
         
         if (cancelled) return;
 
@@ -82,7 +88,7 @@ export default function FlipbookViewer({ pdfFile, flipbookId, onClose }: Flipboo
     return () => {
       cancelled = true;
     };
-  }, [pdfFile]);
+  }, [pdfFile, pdfUrl]);
 
   // Load page when navigating - OPTIMIZED
   const loadPage = useCallback(async (pageNum: number) => {
@@ -332,7 +338,7 @@ export default function FlipbookViewer({ pdfFile, flipbookId, onClose }: Flipboo
               ← Back
             </button>
             <h2 className="text-lg font-semibold text-gray-800 truncate max-w-xs">
-              {pdfFile.name}
+              {title || pdfFile?.name || 'Flipbook'}
             </h2>
           </div>
 
@@ -449,9 +455,10 @@ export default function FlipbookViewer({ pdfFile, flipbookId, onClose }: Flipboo
       </div>
 
       {/* Share Modal */}
-      {showShareModal && flipbookId && (
+      {showShareModal && (
         <ShareModal
-          flipbookId={flipbookId}
+          initialPdfUrl={pdfUrl}
+          defaultTitle={title || pdfFile?.name || 'Flipbook'}
           onClose={() => setShowShareModal(false)}
         />
       )}

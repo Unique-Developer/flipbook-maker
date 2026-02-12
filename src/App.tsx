@@ -1,29 +1,37 @@
 import { useState, useEffect } from 'react';
 import PDFUpload from './components/PDFUpload';
 import FlipbookViewer from './components/FlipbookViewer';
-import { generateFlipbookId, saveFlipbook, getFlipbookById } from './utils/storage';
+import { generateFlipbookId, saveFlipbook } from './utils/storage';
 import { loadPDF } from './utils/pdfUtils';
 
 function App() {
   const [currentPDF, setCurrentPDF] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [flipbookId, setFlipbookId] = useState<string | null>(null);
 
-  // Check for flipbook ID in URL hash
+  // Shared-view state for permanent GitHub-hosted PDFs
+  const [sharedPdfUrl, setSharedPdfUrl] = useState<string | null>(null);
+  const [sharedTitle, setSharedTitle] = useState<string | undefined>(undefined);
+
+  // Check for shared view in URL hash: #/view?pdf=...&title=...
   useEffect(() => {
-    const hash = window.location.hash;
-    const match = hash.match(/\/flipbook\/([a-f0-9-]+)/);
-    
-    if (match) {
-      const id = match[1];
-      const flipbook = getFlipbookById(id);
-      
-      if (flipbook) {
-        // In a real app, you'd load the PDF file from storage
-        // For now, we'll just show a message that the flipbook was found
-        setFlipbookId(id);
-        // Note: Since we don't store the actual PDF file, we can't restore it
-        // This would require a backend or IndexedDB for larger files
+    const hash = window.location.hash; // e.g. "#/view?pdf=...&title=..."
+    if (hash.startsWith('#/view')) {
+      const [, queryString] = hash.split('?');
+      const params = new URLSearchParams(queryString ?? '');
+      const pdfParam = params.get('pdf');
+      const titleParam = params.get('title');
+
+      if (pdfParam) {
+        try {
+          const decodedPdf = decodeURIComponent(pdfParam);
+          const decodedTitle = titleParam ? decodeURIComponent(titleParam) : undefined;
+          setSharedPdfUrl(decodedPdf);
+          setSharedTitle(decodedTitle);
+        } catch {
+          // If decoding fails, just use the raw value
+          setSharedPdfUrl(pdfParam);
+          setSharedTitle(titleParam ?? undefined);
+        }
       }
     }
   }, []);
@@ -36,7 +44,7 @@ function App() {
       const pdf = await loadPDF(file);
       const totalPages = pdf.numPages;
       
-      // Generate flipbook ID and save metadata (only metadata, not the File itself)
+      // Optionally store metadata locally (not required for permanent GitHub URLs)
       const id = generateFlipbookId();
       saveFlipbook({
         id,
@@ -45,11 +53,7 @@ function App() {
         createdAt: Date.now(),
       });
       
-      setFlipbookId(id);
       setCurrentPDF(file);
-      
-      // Update URL hash
-      window.location.hash = `/flipbook/${id}`;
     } catch (error) {
       console.error('Error processing PDF:', error);
       alert('Failed to process PDF. Please try again.');
@@ -60,15 +64,31 @@ function App() {
 
   const handleCloseViewer = () => {
     setCurrentPDF(null);
-    setFlipbookId(null);
     window.location.hash = '';
   };
 
+  const handleCloseSharedViewer = () => {
+    setSharedPdfUrl(null);
+    setSharedTitle(undefined);
+    window.location.hash = '';
+  };
+
+  // If opened via share link (permanent GitHub-hosted PDF)
+  if (sharedPdfUrl) {
+    return (
+      <FlipbookViewer
+        pdfUrl={sharedPdfUrl}
+        title={sharedTitle}
+        onClose={handleCloseSharedViewer}
+      />
+    );
+  }
+
+  // If a local PDF has been uploaded in this session
   if (currentPDF) {
     return (
       <FlipbookViewer 
-        pdfFile={currentPDF} 
-        flipbookId={flipbookId || undefined}
+        pdfFile={currentPDF}
         onClose={handleCloseViewer} 
       />
     );

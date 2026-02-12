@@ -9,20 +9,31 @@ export interface PDFPage {
 }
 
 /**
- * Load PDF document from file
- * Optimized for fast loading by using streaming
+ * Load PDF document from a File or a URL string.
+ * Optimized for fast loading by using streaming when possible.
  */
-export async function loadPDF(file: File): Promise<pdfjsLib.PDFDocumentProxy> {
-  const arrayBuffer = await file.arrayBuffer();
-  const loadingTask = pdfjsLib.getDocument({
-    data: arrayBuffer,
-    // Enable streaming for faster initial load
-    verbosity: 0,
-    // Disable auto fetch to control loading
-    disableAutoFetch: false,
-    // Enable streaming
-    isEvalSupported: false,
-  });
+export async function loadPDF(source: File | string): Promise<pdfjsLib.PDFDocumentProxy> {
+  let loadingTask: pdfjsLib.PDFDocumentLoadingTask;
+
+  if (typeof source === 'string') {
+    // Load PDF directly from URL (used for permanent GitHub-hosted PDFs)
+    loadingTask = pdfjsLib.getDocument({
+      url: source,
+      verbosity: 0,
+      disableAutoFetch: false,
+      isEvalSupported: false,
+      withCredentials: false,
+    });
+  } else {
+    // Load PDF from File (local upload)
+    const arrayBuffer = await source.arrayBuffer();
+    loadingTask = pdfjsLib.getDocument({
+      data: arrayBuffer,
+      verbosity: 0,
+      disableAutoFetch: false,
+      isEvalSupported: false,
+    });
+  }
   
   return await loadingTask.promise;
 }

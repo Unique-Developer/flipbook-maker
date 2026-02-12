@@ -1,21 +1,38 @@
 import { useState, useEffect } from 'react';
 
 interface ShareModalProps {
-  flipbookId: string;
+  initialPdfUrl?: string;
+  defaultTitle?: string;
   onClose: () => void;
 }
 
-export default function ShareModal({ flipbookId, onClose }: ShareModalProps) {
+export default function ShareModal({ initialPdfUrl, defaultTitle, onClose }: ShareModalProps) {
+  const [pdfUrl, setPdfUrl] = useState(initialPdfUrl ?? '');
+  const [title, setTitle] = useState(defaultTitle ?? '');
   const [shareLink, setShareLink] = useState('');
   const [copied, setCopied] = useState(false);
 
+  // Generate share link whenever pdfUrl or title changes and pdfUrl is present
   useEffect(() => {
-    const link = `${window.location.origin}${window.location.pathname}#/flipbook/${flipbookId}`;
+    if (!pdfUrl) {
+      setShareLink('');
+      return;
+    }
+
+    const base = `${window.location.origin}${window.location.pathname}`;
+    const params = new URLSearchParams();
+    params.set('pdf', encodeURIComponent(pdfUrl));
+    if (title) {
+      params.set('title', encodeURIComponent(title));
+    }
+
+    const link = `${base}#/view?${params.toString()}`;
     setShareLink(link);
-  }, [flipbookId]);
+  }, [pdfUrl, title]);
 
   const handleCopy = async () => {
     try {
+      if (!shareLink) return;
       await navigator.clipboard.writeText(shareLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -39,7 +56,36 @@ export default function ShareModal({ flipbookId, onClose }: ShareModalProps) {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Public PDF URL (e.g. GitHub-hosted)
+            </label>
+            <input
+              type="text"
+              value={pdfUrl}
+              onChange={(e) => setPdfUrl(e.target.value)}
+              placeholder="https://unique-developer.github.io/flipbook-assets/my-catalog.pdf"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Upload your PDF to a public GitHub repo (e.g. <code>flipbook-assets</code>) and paste its raw URL here.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Title (optional)
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Summer 2025 Catalogue"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Share Link
             </label>
             <div className="flex gap-2">
@@ -47,14 +93,18 @@ export default function ShareModal({ flipbookId, onClose }: ShareModalProps) {
                 type="text"
                 value={shareLink}
                 readOnly
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Add a public PDF URL above to generate link"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs"
               />
               <button
                 onClick={handleCopy}
+                disabled={!shareLink}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  copied
-                    ? 'bg-green-500 text-white'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                  !shareLink
+                    ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                    : copied
+                      ? 'bg-green-500 text-white'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
                 {copied ? '✓ Copied' : 'Copy'}
@@ -62,8 +112,8 @@ export default function ShareModal({ flipbookId, onClose }: ShareModalProps) {
             </div>
           </div>
 
-          <p className="text-sm text-gray-500">
-            Anyone with this link can view your flipbook. The link is stored locally in your browser.
+          <p className="text-xs text-gray-500">
+            Anyone with this link can view your flipbook, even on a different device, as long as the PDF stays in your public GitHub repo.
           </p>
         </div>
       </div>
